@@ -15,6 +15,8 @@ Este projeto reutiliza a mesma tabela Oracle (`TDS_TB_mercado`) construída na [
 
 > O plano gratuito do Render hiberna o serviço após ~15 min de inatividade. O primeiro acesso após esse período pode levar de 30 a 50 segundos para responder.
 
+![Deploy Render](assets/deploy-render.png)
+
 ---
 
 ## Integrantes do Grupo
@@ -31,6 +33,8 @@ Este projeto reutiliza a mesma tabela Oracle (`TDS_TB_mercado`) construída na [
 ---
 
 ## Configuração do Projeto — Spring Initializr
+
+![Spring Initializr](assets/spring-initializr.png)
 
 ### Dependências
 
@@ -169,7 +173,7 @@ Para acessar a aplicação (login obrigatório):
 | Campo | Valor |
 |-------|-------|
 | **Usuário** | `Tranquilo` |
-| **Senha** | `123456` |
+| **Senha** | `123` |
 
 Essas credenciais estão configuradas no `application.properties` via variáveis de ambiente (`${ADMIN_USER}` e `${ADMIN_PASSWORD}`), tanto em ambiente local quanto no deploy no Render.
 
@@ -219,6 +223,28 @@ Mesma entidade e tabela (`TDS_TB_mercado`) definidas na Parte I — consulte o [
 | `POST /logout` | Encerra a sessão e redireciona para `/` |
 
 Validações de formulário (`@Valid` + `BindingResult`) reaproveitam as mesmas regras de negócio da Parte I (nome e tipo entre 3–50 caracteres, tamanho entre 2–50, preço positivo obrigatório) e exibem a mensagem de erro abaixo do campo correspondente, sem sair da página do formulário.
+
+---
+
+## Demonstração Visual
+
+### Tela de Login
+
+![Login Page](assets/login-page.png)
+
+Formulário de autenticação customizado. Credenciais de teste: `Tranquilo` / `123`.
+
+### Listagem de Produtos
+
+![Lista de Produtos](assets/lista-produtos.png)
+
+Painel administrativo mostrando todos os produtos cadastrados com opções de editar e excluir.
+
+### Formulário de Novo Produto
+
+![Novo Produto](assets/formulario-novo.png)
+
+Formulário para criar ou editar produtos, com validação client e server-side.
 
 ---
 
