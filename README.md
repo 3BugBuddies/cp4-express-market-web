@@ -162,6 +162,19 @@ A aplicação sobe em `http://localhost:8083`.
 
 ---
 
+## Credenciais de Teste
+
+Para acessar a aplicação (login obrigatório):
+
+| Campo | Valor |
+|-------|-------|
+| **Usuário** | `Tranquilo` |
+| **Senha** | `123456` |
+
+Essas credenciais estão configuradas no `application.properties` via variáveis de ambiente (`${ADMIN_USER}` e `${ADMIN_PASSWORD}`), tanto em ambiente local quanto no deploy no Render.
+
+---
+
 ## Rodando com Docker
 
 O projeto inclui um `Dockerfile` multi-stage (build com Maven + Java 21, execução com JRE 21).
