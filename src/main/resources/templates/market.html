@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market express</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <header class="topbar">
+        <h1>Express Market</h1>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="btn btn-secondary">Sair</button>
+        </form>
+    </header>
+
+    <main class="container">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Produtos cadastrados</h2>
+                <a th:href="@{/market/novo}" class="btn btn-primary">+ Novo produto</a>
+            </div>
+
+            <table th:if="${not #lists.isEmpty(produtos)}">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Setor</th>
+                        <th>Tamanho</th>
+                        <th>Preço</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="produto : ${produtos}">
+                        <td th:text="${produto.nome}">Nome</td>
+                        <td th:text="${produto.tipo}">Tipo</td>
+                        <td th:text="${produto.setor}">Setor</td>
+                        <td th:text="${produto.tamanho}">Tamanho</td>
+                        <td th:text="${'R$ ' + #numbers.formatDecimal(produto.preco, 1, 2)}">R$ 0,00</td>
+                        <td class="actions">
+                            <a th:href="@{/market/editar/{id}(id=${produto.id})}" class="btn btn-secondary">Editar</a>
+                            <form th:action="@{/market/excluir/{id}(id=${produto.id})}" method="post"
+                                  onsubmit="return confirm('Excluir este produto?');">
+                                <button type="submit" class="btn btn-danger">Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="empty-state" th:if="${#lists.isEmpty(produtos)}">
+                Nenhum produto cadastrado ainda.
+            </p>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Express Market</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="auth-page">
+    <div class="login-card">
+        <h1>Express Market</h1>
+        <p class="subtitle">Acesse o painel administrativo</p>
+
+        <div class="alert alert-error" th:if="${param.error}">
+            Usuário ou senha inválidos.
+        </div>
+
+        <div class="alert alert-success" th:if="${param.logout}">
+            Você saiu da sua conta com sucesso.
+        </div>
+
+        <form th:action="@{/login}" method="post">
+            <div class="field">
+                <label for="username">Usuário</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+
+            <div class="field">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        </form>
+
+        <a class="back-link" th:href="@{/}">&larr; Voltar para a página inicial</a>
+    </div>
+</body>
+</html>
