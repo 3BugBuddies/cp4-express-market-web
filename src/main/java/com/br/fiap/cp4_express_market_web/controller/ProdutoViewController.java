@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-/**
- *
- */
 @Controller
 @RequiredArgsConstructor
 public class ProdutoViewController {
@@ -65,8 +62,14 @@ public class ProdutoViewController {
     @PostMapping("/market/editar/{id}")
     public String atualizar(@PathVariable Long id,
                             @Valid @ModelAttribute("produtoRequest") ProdutoRequest request,
-                            BindingResult result) {
-        if (result.hasErrors()) return "produto-form";
+                            BindingResult result,
+                            Model model) {
+        if (result.hasErrors()) {
+            // sem o produtoId o template monta o form como "Novo produto" e o
+            // reenvio cairia em POST /market/novo, criando um registro duplicado
+            model.addAttribute("produtoId", id);
+            return "produto-form";
+        }
         produtoService.update(id, request);
         return "redirect:/market";
     }
