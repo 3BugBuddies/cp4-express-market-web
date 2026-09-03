@@ -18,7 +18,10 @@
         <div class="panel">
             <div class="panel-header">
                 <h2>Produtos cadastrados</h2>
-                <a th:href="@{/market/novo}" class="btn btn-primary">+ Novo produto</a>
+                <div class="actions">
+                    <a th:href="@{/api/mercado}" class="btn btn-secondary" target="_blank">Ver JSON (HATEOAS)</a>
+                    <a th:href="@{/market/novo}" class="btn btn-primary">+ Novo produto</a>
+                </div>
             </div>
 
             <table th:if="${not #lists.isEmpty(produtos)}">
@@ -33,15 +36,16 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <!-- cada "produto" é um EntityModel: os dados ficam em .content e os links vêm do ProdutoModelAssembler -->
                     <tr th:each="produto : ${produtos}">
-                        <td th:text="${produto.nome}">Nome</td>
-                        <td th:text="${produto.tipo}">Tipo</td>
-                        <td th:text="${produto.setor}">Setor</td>
-                        <td th:text="${produto.tamanho}">Tamanho</td>
-                        <td th:text="${'R$ ' + #numbers.formatDecimal(produto.preco, 1, 2)}">R$ 0,00</td>
+                        <td th:text="${produto.content.nome}">Nome</td>
+                        <td th:text="${produto.content.tipo}">Tipo</td>
+                        <td th:text="${produto.content.setor}">Setor</td>
+                        <td th:text="${produto.content.tamanho}">Tamanho</td>
+                        <td th:text="${'R$ ' + #numbers.formatDecimal(produto.content.preco, 1, 2)}">R$ 0,00</td>
                         <td class="actions">
-                            <a th:href="@{/market/editar/{id}(id=${produto.id})}" class="btn btn-secondary">Editar</a>
-                            <form th:action="@{/market/excluir/{id}(id=${produto.id})}" method="post"
+                            <a th:href="${produto.getRequiredLink('editar').href}" class="btn btn-secondary">Editar</a>
+                            <form th:action="${produto.getRequiredLink('excluir').href}" method="post"
                                   onsubmit="return confirm('Excluir este produto?');">
                                 <button type="submit" class="btn btn-danger">Excluir</button>
                             </form>

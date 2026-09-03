@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Erro ' + ${status} + ' — Express Market'">Erro — Express Market</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="auth-page">
+    <div class="login-card">
+        <h1 th:text="${status}">500</h1>
+        <p class="subtitle" th:text="${error}">Erro</p>
+
+        <div class="alert alert-error"
+             th:text="${#strings.isEmpty(message)} ? 'Não foi possível concluir a operação.' : ${message}">
+            Não foi possível concluir a operação.
+        </div>
+
+        <p class="empty-state" th:if="${path}" th:text="${path}">/caminho</p>
+
+        <a th:href="@{/market}" class="btn btn-primary btn-block">Voltar para a lista</a>
+        <a class="back-link" th:href="@{/}">&larr; Página inicial</a>
+    </div>
+</body>
+</html>

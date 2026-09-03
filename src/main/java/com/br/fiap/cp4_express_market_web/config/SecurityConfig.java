@@ -2,6 +2,7 @@ package com.br.fiap.cp4_express_market_web.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -10,14 +11,19 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(authorizeConfig -> {
-                    authorizeConfig.requestMatchers("/", "/publico", "/login").permitAll();
+                    authorizeConfig.requestMatchers("/", "/login", "/logout").permitAll();
                     authorizeConfig.requestMatchers("/css/**", "/js/**", "/images/**").permitAll();
-                    authorizeConfig.requestMatchers("/logout").permitAll();
+                    // consulta JSON com HATEOAS é pública; a escrita continua atrás do login, via /market
+                    authorizeConfig.requestMatchers(HttpMethod.GET, "/api/**").permitAll();
+                    // /error é o destino interno de todo 404/500. Sem liberar, um erro em rota
+                    // pública (ex.: /css/arquivo-inexistente.css) viraria redirect para o login
+                    // em vez de renderizar a página de erro. Rotas desconhecidas continuam
+                    // privadas por causa do anyRequest().authenticated() abaixo.
+                    authorizeConfig.requestMatchers("/error").permitAll();
                     authorizeConfig.requestMatchers("/market/**").authenticated();
                     authorizeConfig.anyRequest().authenticated();
                 })

@@ -1,5 +1,6 @@
 package com.br.fiap.cp4_express_market_web.controller;
 
+import com.br.fiap.cp4_express_market_web.assembler.ProdutoModelAssembler;
 import com.br.fiap.cp4_express_market_web.dto.ProdutoRequest;
 import com.br.fiap.cp4_express_market_web.service.ProdutoService;
 import jakarta.validation.Valid;
@@ -12,14 +13,12 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-/**
- *
- */
 @Controller
 @RequiredArgsConstructor
 public class ProdutoViewController {
 
     private final ProdutoService produtoService;
+    private final ProdutoModelAssembler assembler;
 
     @GetMapping("/")
     public String home() {
@@ -33,7 +32,11 @@ public class ProdutoViewController {
 
     @GetMapping("/market")
     public String listar(Model model) {
-        model.addAttribute("produtos", produtoService.findAll());
+        // cada item vai para a view com seus links HATEOAS (editar, excluir, self)
+        model.addAttribute("produtos", produtoService.findAll()
+                .stream()
+                .map(assembler::toModel)
+                .toList());
         return "market";
     }
 
@@ -65,8 +68,14 @@ public class ProdutoViewController {
     @PostMapping("/market/editar/{id}")
     public String atualizar(@PathVariable Long id,
                             @Valid @ModelAttribute("produtoRequest") ProdutoRequest request,
-                            BindingResult result) {
-        if (result.hasErrors()) return "produto-form";
+                            BindingResult result,
+                            Model model) {
+        if (result.hasErrors()) {
+            // sem o produtoId o template monta o form como "Novo produto" e o
+            // reenvio cairia em POST /market/novo, criando um registro duplicado
+            model.addAttribute("produtoId", id);
+            return "produto-form";
+        }
         produtoService.update(id, request);
         return "redirect:/market";
     }

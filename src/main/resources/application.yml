@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: cp4-express-market-web
+
+  datasource:
+    url: "${ORACLE_URL:jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL}"
+    username: "${ORACLE_USER:}"
+    password: "${ORACLE_PASSWORD:}"
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 30000
+
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: "${DDL_AUTO:update}"
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    user:
+      name: "${ADMIN_USER:Tranquilo}"
+      password: "${ADMIN_PASSWORD:123}"
+
+server:
+  port: "${PORT:8083}"
+  # atrás do proxy do Render, os links HATEOAS precisam usar o host e o https do X-Forwarded-*
+  forward-headers-strategy: framework
