@@ -49,8 +49,9 @@ Este projeto reutiliza a mesma tabela Oracle (`TDS_TB_mercado`) construída na [
 | Lombok | Developer Tools | Redução de boilerplate (getters, setters, construtores) |
 | Oracle Driver | SQL | Driver JDBC para Oracle Database |
 | Spring Boot DevTools | Developer Tools | LiveReload e reinicialização automática |
+| Spring HATEOAS | WEB | Links de navegação nas respostas JSON e nos botões das views (maturidade nível 3) |
 
-> Em relação à Parte I, esta versão **remove** Spring HATEOAS e SpringDoc OpenAPI (exclusivos de API REST) e **adiciona** Spring Security e Thymeleaf, exigidos para a camada web autenticada.
+> Em relação à Parte I, esta versão **remove** o SpringDoc OpenAPI, **mantém** o Spring HATEOAS (agora alimentando os botões das views e um endpoint JSON de consulta) e **adiciona** Spring Security e Thymeleaf, exigidos para a camada web autenticada.
 
 ---
 
@@ -61,18 +62,24 @@ src/
 ├── main/
 │   ├── java/com/br/fiap/cp4_express_market_web/
 │   │   ├── Cp4ExpressMarketWebApplication.java   # Classe principal
+│   │   ├── assembler/
+│   │   │   └── ProdutoModelAssembler.java        # Monta os links HATEOAS (views e JSON)
 │   │   ├── config/
 │   │   │   └── SecurityConfig.java               # Regras de autenticação e autorização
 │   │   ├── controller/
-│   │   │   └── ProdutoViewController.java        # Rotas MVC (retornam views, não JSON)
+│   │   │   ├── ProdutoViewController.java        # Rotas MVC (retornam views, não JSON)
+│   │   │   └── ProdutoApiController.java         # Consulta JSON com HATEOAS (/api/mercado)
 │   │   ├── dto/
-│   │   │   └── ProdutoRequest.java               # Vínculo do formulário HTML + validação
+│   │   │   ├── ProdutoRequest.java               # Vínculo do formulário HTML + validação
+│   │   │   └── ProdutoResponse.java              # Conteúdo embrulhado pelo assembler
 │   │   ├── entity/
 │   │   │   └── Produto.java                      # Entidade JPA (mesma tabela da Parte I)
 │   │   ├── exception/
 │   │   │   └── NotFoundException.java            # Lançada quando um produto não existe
 │   │   ├── handler/
-│   │   │   └── GlobalExceptionHandler.java       # Traduz NotFoundException na página de erro 404
+│   │   │   ├── GlobalExceptionHandler.java       # Traduz NotFoundException na página de erro 404
+│   │   │   ├── ApiExceptionHandler.java          # Mesma exceção em JSON, só para o endpoint /api
+│   │   │   └── ErrorResponse.java                # Corpo das respostas de erro em JSON
 │   │   ├── repository/
 │   │   │   └── ProdutoRepository.java            # Interface de acesso a dados
 │   │   └── service/
@@ -100,7 +107,7 @@ Na Parte I, o `ProdutoController` é anotado com `@RestController` e devolve JSO
 
 Aqui, o `ProdutoViewController` é anotado com `@Controller` e cada método devolve o **nome de uma view** Thymeleaf (ex: `"market"` → `templates/market.html`), populando um `Model` com os dados a serem exibidos. É o navegador quem consome essas páginas diretamente, não um cliente de API.
 
-Pelo mesmo motivo, os DTOs foram simplificados: `ProdutoResponse` e `ProdutoPatchRequest` (usados na Parte I para moldar JSON e atualizações parciais via API) não fazem sentido aqui — o Thymeleaf usa a entidade `Produto` direto no `Model`, e o formulário HTML sempre envia todos os campos de uma vez (por isso o service não implementa `patch`, apenas `update`).
+Pelo mesmo motivo, `ProdutoPatchRequest` (atualização parcial via API na Parte I) não existe aqui: o formulário HTML sempre envia todos os campos de uma vez, então o service implementa só `update`, não `patch`. `ProdutoResponse` continua: é o conteúdo que o `ProdutoModelAssembler` embrulha com os links HATEOAS, tanto para a view quanto para o endpoint JSON.
 
 ---
 
@@ -112,6 +119,7 @@ Pelo mesmo motivo, os DTOs foram simplificados: `ProdutoResponse` e `ProdutoPatc
 |------|--------|
 | `/`, `/login` | Pública |
 | `/css/**`, `/js/**`, `/images/**` | Pública (recursos estáticos) |
+| `GET /api/**` | Pública (consulta JSON com HATEOAS; só leitura) |
 | `/logout` | Pública |
 | `/market/**` | Autenticado |
 | Qualquer outra rota | Autenticado |
@@ -138,6 +146,38 @@ Na Parte I, o `GlobalExceptionHandler` devolvia um JSON de erro. Aqui, quem cons
 O template lê os mesmos atributos que o Spring Boot popula (`status`, `error`, `message`, `path`), por isso um único arquivo atende os dois caminhos. Sem o handler, um id inexistente estourava como `500 Internal Server Error`.
 
 ![Página de erro 404](assets/erro-404.png)
+
+---
+
+## HATEOAS na Parte II
+
+A Parte I devolvia JSON com links (nível 3 de maturidade de Richardson). Aqui o mesmo padrão aparece de duas formas, com um único `ProdutoModelAssembler`:
+
+1. **Nas views.** O controller MVC não manda a entidade crua para o template: manda `EntityModel<ProdutoResponse>`, e o `market.html` monta os botões "Editar" e "Excluir" a partir dos links `editar` e `excluir` (`produto.getRequiredLink('editar').href`). A view segue o que o servidor devolve em vez de montar URL na mão.
+2. **Em um endpoint JSON de consulta.** `GET /api/mercado` e `GET /api/mercado/{id}` devolvem a representação com `_links`, sem exigir login, para consumo por navegador ou Postman. A escrita continua pelos formulários autenticados, e é para as rotas web que os links `editar` e `excluir` apontam.
+
+```json
+{
+  "id": 1,
+  "nome": "Detergente Neutro 500ml",
+  "tipo": "Produto de Limpeza",
+  "setor": "Limpeza",
+  "tamanho": "500ml",
+  "preco": 3.49,
+  "_links": {
+    "self":    { "href": "http://localhost:8083/api/mercado/1" },
+    "mercado": { "href": "http://localhost:8083/api/mercado" },
+    "editar":  { "href": "http://localhost:8083/market/editar/1" },
+    "excluir": { "href": "http://localhost:8083/market/excluir/1" }
+  }
+}
+```
+
+![Consulta JSON com links HATEOAS](assets/api-hateoas.png)
+
+Id inexistente no endpoint JSON devolve `404` com corpo JSON (`ApiExceptionHandler`), não a página `error.html`: esse advice é restrito ao `ProdutoApiController` e tem prioridade sobre o global.
+
+Atrás do proxy do Render, `server.forward-headers-strategy: framework` faz os links saírem com `https` e o host público, em vez do endereço interno do container.
 
 ---
 
@@ -249,6 +289,8 @@ Mesma entidade e tabela (`TDS_TB_mercado`) definidas na Parte I — consulte o [
 | `POST /market/editar/{id}` | Atualiza o produto e redireciona para `/market` |
 | `POST /market/excluir/{id}` | Remove o produto (com confirmação no navegador) e redireciona para `/market` |
 | `POST /logout` | Encerra a sessão e redireciona para `/` |
+| `GET /api/mercado` | Lista em JSON com `_links` (público) |
+| `GET /api/mercado/{id}` | Um produto em JSON com `_links`; `404` JSON se não existir |
 
 Validações de formulário (`@Valid` + `BindingResult`) reaproveitam as mesmas regras de negócio da Parte I (nome e tipo entre 3–50 caracteres, tamanho entre 2–50, preço positivo obrigatório) e exibem a mensagem de erro abaixo do campo correspondente, sem sair da página do formulário.
 
