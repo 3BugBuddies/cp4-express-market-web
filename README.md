@@ -71,6 +71,8 @@ src/
 │   │   │   └── Produto.java                      # Entidade JPA (mesma tabela da Parte I)
 │   │   ├── exception/
 │   │   │   └── NotFoundException.java            # Lançada quando um produto não existe
+│   │   ├── handler/
+│   │   │   └── GlobalExceptionHandler.java       # Traduz NotFoundException na página de erro 404
 │   │   ├── repository/
 │   │   │   └── ProdutoRepository.java            # Interface de acesso a dados
 │   │   └── service/
@@ -83,10 +85,11 @@ src/
 │       │   ├── index.html                        # Landing page pública
 │       │   ├── login.html                        # Formulário de login customizado
 │       │   ├── market.html                       # Listagem de produtos (área autenticada)
-│       │   └── produto-form.html                 # Formulário de criação/edição
-│       └── application.properties                # Configurações da aplicação
+│       │   ├── produto-form.html                 # Formulário de criação/edição
+│       │   └── error.html                        # Página de erro (404 e demais falhas)
+│       └── application.properties                # Configurações da aplicação (com defaults)
 ├── Dockerfile                                     # Build multi-stage para deploy no Render
-└── application-local.properties / .env            # Credenciais locais (fora do controle de versão)
+└── .gitignore                                     # Ignora application-local.properties e .env
 ```
 
 ---
@@ -118,49 +121,57 @@ Pelo mesmo motivo, os DTOs foram simplificados: `ProdutoResponse` e `ProdutoPatc
 - **Login:** formulário customizado em `/login` (`login.html`), com feedback visual de erro (`?error`) e de logout (`?logout`)
 - **Sucesso no login:** redireciona para `/market`
 - **Logout:** limpa a sessão e redireciona para `/`
-- **Usuário:** autenticação em memória via `spring.security.user.name` / `spring.security.user.password`, configurados por variável de ambiente (ver seção de configuração abaixo)
+- **Usuário:** autenticação em memória via `spring.security.user.name` / `spring.security.user.password`, com valores padrão no `application.properties` e sobrescrita por variável de ambiente (ver seção de configuração abaixo)
+- **`/error` é público:** é para essa rota interna que o Spring Boot encaminha todo 404 e 500. Se ela ficasse atrás de `anyRequest().authenticated()`, um erro em rota pública (por exemplo, um arquivo inexistente em `/css/`) viraria redirect para o login em vez de mostrar a página de erro. URLs desconhecidas continuam privadas: sem login, qualquer rota não listada como pública redireciona para `/login`
+
+---
+
+## Tratamento de Erros
+
+Na Parte I, o `GlobalExceptionHandler` devolvia um JSON de erro. Aqui, quem consome a aplicação é o navegador, então o mesmo padrão (`@ControllerAdvice` + `@ExceptionHandler`) devolve uma **view** Thymeleaf:
+
+| Situação | Resposta |
+|----------|----------|
+| `NotFoundException` (id inexistente em editar/excluir) | `404` renderizando `error.html` com a mensagem da exceção |
+| Rota inexistente, erro inesperado | `error.html` via `BasicErrorController` do Spring Boot, que usa o template `templates/error.html` no lugar da Whitelabel Error Page |
+
+O template lê os mesmos atributos que o Spring Boot popula (`status`, `error`, `message`, `path`), por isso um único arquivo atende os dois caminhos. Sem o handler, um id inexistente estourava como `500 Internal Server Error`.
+
+![Página de erro 404](assets/erro-404.png)
 
 ---
 
 ## Configuração de Variáveis de Ambiente
 
-Nenhuma credencial fica em texto puro no repositório. Todas são resolvidas via variáveis de ambiente:
+A senha do Oracle nunca fica no repositório. O `application.properties` traz valores padrão para tudo o que não é segredo e lê o restante de variáveis de ambiente, no formato `${VARIAVEL:default}`:
 
 ```properties
-spring.datasource.url=${ORACLE_URL}
-spring.datasource.username=${ORACLE_USER}
-spring.datasource.password=${ORACLE_PASSWORD}
+spring.datasource.url=${ORACLE_URL:jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL}
+spring.datasource.username=${ORACLE_USER:}
+spring.datasource.password=${ORACLE_PASSWORD:}
 
-spring.security.user.name=${ADMIN_USER}
-spring.security.user.password=${ADMIN_PASSWORD}
+spring.security.user.name=${ADMIN_USER:Tranquilo}
+spring.security.user.password=${ADMIN_PASSWORD:123}
 ```
 
-| Variável | Descrição |
-|----------|-----------|
-| `ORACLE_URL` | String de conexão JDBC com o Oracle da FIAP |
-| `ORACLE_USER` | RM do integrante dono do schema |
-| `ORACLE_PASSWORD` | Senha do Oracle |
-| `ADMIN_USER` | Usuário de login da aplicação web |
-| `ADMIN_PASSWORD` | Senha de login da aplicação web |
-| `PORT` | Porta HTTP (injetada automaticamente pelo Render; local usa `8083` por padrão) |
+| Variável | Obrigatória | Descrição |
+|----------|-------------|-----------|
+| `ORACLE_USER` | Sim | RM do integrante dono do schema |
+| `ORACLE_PASSWORD` | Sim | Senha do Oracle |
+| `ORACLE_URL` | Não | String JDBC; o padrão já aponta para o Oracle da FIAP |
+| `ADMIN_USER` | Não | Usuário de login da aplicação web (padrão `Tranquilo`) |
+| `ADMIN_PASSWORD` | Não | Senha de login da aplicação web (padrão `123`) |
+| `PORT` | Não | Porta HTTP (injetada automaticamente pelo Render; local usa `8083`) |
 
 ### Rodando localmente
 
-Crie um arquivo `application-local.properties` em `src/main/resources/` (já ignorado pelo Git) com os valores reais:
-
-```properties
-ORACLE_URL=jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL
-ORACLE_USER=<SEU_RM>
-ORACLE_PASSWORD=<SUA_SENHA>
-ADMIN_USER=<usuario_desejado>
-ADMIN_PASSWORD=<senha_desejada>
-```
-
-E ative o perfil `local` ao rodar:
+Basta informar as duas variáveis obrigatórias:
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+ORACLE_USER=<SEU_RM> ORACLE_PASSWORD=<SUA_SENHA> ./mvnw spring-boot:run
 ```
+
+Alternativa sem expor a senha no histórico do terminal: crie `src/main/resources/application-local.properties` (já ignorado pelo Git) com `ORACLE_USER=<SEU_RM>` e `ORACLE_PASSWORD=<SUA_SENHA>` e rode com `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`.
 
 A aplicação sobe em `http://localhost:8083`.
 
@@ -175,7 +186,7 @@ Para acessar a aplicação (login obrigatório):
 | **Usuário** | `Tranquilo` |
 | **Senha** | `123` |
 
-Essas credenciais estão configuradas no `application.properties` via variáveis de ambiente (`${ADMIN_USER}` e `${ADMIN_PASSWORD}`), tanto em ambiente local quanto no deploy no Render.
+Esses são os valores padrão de `spring.security.user.name` / `spring.security.user.password` no `application.properties`. No Render eles podem ser sobrescritos pelas variáveis `ADMIN_USER` e `ADMIN_PASSWORD`, sem alterar o código.
 
 ---
 
@@ -197,7 +208,7 @@ docker run -p 8083:8083 --env-file .env cp4-express-market-web
 
 1. Repositório conectado ao Render como **Web Service**
 2. **Runtime:** Docker (o Render não oferece runtime nativo Java; o `Dockerfile` do projeto cuida do build)
-3. Variáveis de ambiente cadastradas em **Settings → Environment**: `ORACLE_URL`, `ORACLE_USER`, `ORACLE_PASSWORD`, `ADMIN_USER`, `ADMIN_PASSWORD`
+3. Variáveis de ambiente cadastradas em **Settings → Environment**: `ORACLE_USER` e `ORACLE_PASSWORD` (obrigatórias); `ORACLE_URL`, `ADMIN_USER` e `ADMIN_PASSWORD` só se quiser sobrescrever os padrões
 4. Deploy automático a cada `git push` na branch `main`
 
 ---
@@ -223,6 +234,10 @@ Mesma entidade e tabela (`TDS_TB_mercado`) definidas na Parte I — consulte o [
 | `POST /logout` | Encerra a sessão e redireciona para `/` |
 
 Validações de formulário (`@Valid` + `BindingResult`) reaproveitam as mesmas regras de negócio da Parte I (nome e tipo entre 3–50 caracteres, tamanho entre 2–50, preço positivo obrigatório) e exibem a mensagem de erro abaixo do campo correspondente, sem sair da página do formulário.
+
+Na edição, o formulário re-renderizado após um erro de validação mantém o `produtoId` no `Model`. Sem isso, o template montaria o `th:action` como `/market/novo` e o reenvio criaria um produto duplicado em vez de atualizar o existente.
+
+![Validação na edição mantém a rota de atualização](assets/editar-validacao.png)
 
 ---
 
