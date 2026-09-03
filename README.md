@@ -87,9 +87,9 @@ src/
 │       │   ├── market.html                       # Listagem de produtos (área autenticada)
 │       │   ├── produto-form.html                 # Formulário de criação/edição
 │       │   └── error.html                        # Página de erro (404 e demais falhas)
-│       └── application.properties                # Configurações da aplicação (com defaults)
+│       └── application.yml                       # Configurações da aplicação em YAML (com defaults)
 ├── Dockerfile                                     # Build multi-stage para deploy no Render
-└── .gitignore                                     # Ignora application-local.properties e .env
+└── .gitignore                                     # Ignora application-local.yml e .env
 ```
 
 ---
@@ -121,7 +121,7 @@ Pelo mesmo motivo, os DTOs foram simplificados: `ProdutoResponse` e `ProdutoPatc
 - **Login:** formulário customizado em `/login` (`login.html`), com feedback visual de erro (`?error`) e de logout (`?logout`)
 - **Sucesso no login:** redireciona para `/market`
 - **Logout:** limpa a sessão e redireciona para `/`
-- **Usuário:** autenticação em memória via `spring.security.user.name` / `spring.security.user.password`, com valores padrão no `application.properties` e sobrescrita por variável de ambiente (ver seção de configuração abaixo)
+- **Usuário:** autenticação em memória via `spring.security.user.name` / `spring.security.user.password`, com valores padrão no `application.yml` e sobrescrita por variável de ambiente (ver seção de configuração abaixo)
 - **`/error` é público:** é para essa rota interna que o Spring Boot encaminha todo 404 e 500. Se ela ficasse atrás de `anyRequest().authenticated()`, um erro em rota pública (por exemplo, um arquivo inexistente em `/css/`) viraria redirect para o login em vez de mostrar a página de erro. URLs desconhecidas continuam privadas: sem login, qualquer rota não listada como pública redireciona para `/login`
 
 ---
@@ -143,16 +143,24 @@ O template lê os mesmos atributos que o Spring Boot popula (`status`, `error`, 
 
 ## Configuração de Variáveis de Ambiente
 
-A senha do Oracle nunca fica no repositório. O `application.properties` traz valores padrão para tudo o que não é segredo e lê o restante de variáveis de ambiente, no formato `${VARIAVEL:default}`:
+A senha do Oracle nunca fica no repositório. A configuração está em `application.yml` (formato YAML, equivalente ao `application.properties` da Parte I): traz valores padrão para tudo o que não é segredo e lê o restante de variáveis de ambiente, no formato `${VARIAVEL:default}`:
 
-```properties
-spring.datasource.url=${ORACLE_URL:jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL}
-spring.datasource.username=${ORACLE_USER:}
-spring.datasource.password=${ORACLE_PASSWORD:}
+```yaml
+spring:
+  datasource:
+    url: "${ORACLE_URL:jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL}"
+    username: "${ORACLE_USER:}"
+    password: "${ORACLE_PASSWORD:}"
+  security:
+    user:
+      name: "${ADMIN_USER:Tranquilo}"
+      password: "${ADMIN_PASSWORD:123}"
 
-spring.security.user.name=${ADMIN_USER:Tranquilo}
-spring.security.user.password=${ADMIN_PASSWORD:123}
+server:
+  port: "${PORT:8083}"
 ```
+
+No YAML a hierarquia de chaves substitui os pontos das properties: `spring.datasource.url` vira `spring:` → `datasource:` → `url:`. As mesmas chaves valem nos dois formatos; o Spring Boot lê qualquer um dos dois.
 
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
@@ -171,7 +179,16 @@ Basta informar as duas variáveis obrigatórias:
 ORACLE_USER=<SEU_RM> ORACLE_PASSWORD=<SUA_SENHA> ./mvnw spring-boot:run
 ```
 
-Alternativa sem expor a senha no histórico do terminal: crie `src/main/resources/application-local.properties` (já ignorado pelo Git) com `ORACLE_USER=<SEU_RM>` e `ORACLE_PASSWORD=<SUA_SENHA>` e rode com `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`.
+Alternativa sem expor a senha no histórico do terminal: crie `src/main/resources/application-local.yml` (já ignorado pelo Git) com as duas chaves e rode com o perfil `local`:
+
+```yaml
+ORACLE_USER: <SEU_RM>
+ORACLE_PASSWORD: <SUA_SENHA>
+```
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
 
 A aplicação sobe em `http://localhost:8083`.
 
@@ -186,7 +203,7 @@ Para acessar a aplicação (login obrigatório):
 | **Usuário** | `Tranquilo` |
 | **Senha** | `123` |
 
-Esses são os valores padrão de `spring.security.user.name` / `spring.security.user.password` no `application.properties`. No Render eles podem ser sobrescritos pelas variáveis `ADMIN_USER` e `ADMIN_PASSWORD`, sem alterar o código.
+Esses são os valores padrão de `spring.security.user.name` / `spring.security.user.password` no `application.yml`. No Render eles podem ser sobrescritos pelas variáveis `ADMIN_USER` e `ADMIN_PASSWORD`, sem alterar o código.
 
 ---
 
