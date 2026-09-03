@@ -1,0 +1,30 @@
+Java Advanced - Professor: Dr. Marcel Stefan Wagner
+CheckPoint 4 - Parte II (Spring MVC, Thymeleaf, Spring Security e Deploy)
+
+EQUIPE BUGBUDDIES
+
+Felipe Yuiti Ishii        - RM: 565339
+Gabriel Nogueira Peixoto  - RM: 563925
+Giovanna Neri dos Santos  - RM: 566154
+Mariana Inoue             - RM: 565834
+
+
+REPOSITÓRIO GITHUB - PARTE I (API REST, ReadMe com a descrição do projeto):
+https://github.com/3BugBuddies/cp4-express-market
+
+REPOSITÓRIO GITHUB - PARTE II (Spring MVC, separado da Parte I):
+https://github.com/3BugBuddies/cp4-express-market-web
+
+
+DEPLOY DA PARTE II:
+Plataforma: Render (Web Service com Docker)
+Link de produção: https://cp4-express-market-web.onrender.com/
+Login de teste: usuário Tranquilo / senha 123
+
+DEPLOY DA PARTE I:
+Plataforma: Render (Web Service com Docker)
+Link de produção: https://cp4-express-market.onrender.com/swagger-ui/index.html
+
+
+IDE UTILIZADA:
+IntelliJ IDEA

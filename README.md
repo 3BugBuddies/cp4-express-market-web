@@ -43,7 +43,6 @@ Este projeto reutiliza a mesma tabela Oracle (`TDS_TB_mercado`) construída na [
 | Spring Web | WEB | Criação da camada MVC (controllers, dispatcher servlet) |
 | Spring Security | SECURITY | Autenticação por formulário, autorização por rota, logout |
 | Thymeleaf | WEB | Motor de templates server-side para renderização das views |
-| thymeleaf-extras-springsecurity6 | WEB | Integração do Thymeleaf com o contexto de segurança (tags `sec:*`) |
 | Spring Data JPA | SQL | Persistência com JPA e Hibernate |
 | Validation | I/O | Bean Validation com Hibernate Validator |
 | Lombok | Developer Tools | Redução de boilerplate (getters, setters, construtores) |
@@ -108,6 +107,34 @@ Na Parte I, o `ProdutoController` é anotado com `@RestController` e devolve JSO
 Aqui, o `ProdutoViewController` é anotado com `@Controller` e cada método devolve o **nome de uma view** Thymeleaf (ex: `"market"` → `templates/market.html`), populando um `Model` com os dados a serem exibidos. É o navegador quem consome essas páginas diretamente, não um cliente de API.
 
 Pelo mesmo motivo, `ProdutoPatchRequest` (atualização parcial via API na Parte I) não existe aqui: o formulário HTML sempre envia todos os campos de uma vez, então o service implementa só `update`, não `patch`. `ProdutoResponse` continua: é o conteúdo que o `ProdutoModelAssembler` embrulha com os links HATEOAS, tanto para a view quanto para o endpoint JSON.
+
+---
+
+## Como Executar
+
+### Pré-requisitos
+
+- Java 21+
+- Maven 3.9+ (ou o `./mvnw` incluído no repositório)
+- Credenciais do Oracle da FIAP
+
+### Rodando a aplicação
+
+```bash
+# Clonar o repositório
+git clone https://github.com/3BugBuddies/cp4-express-market-web.git
+
+# Entrar na pasta do projeto
+cd cp4-express-market-web
+
+# Configurar as credenciais do Oracle
+# (ver a seção "Configuração de Variáveis de Ambiente" abaixo)
+
+# Executar com Maven
+./mvnw spring-boot:run
+```
+
+A aplicação sobe em `http://localhost:8083`. Abra `http://localhost:8083/` no navegador e entre com as credenciais da seção "Credenciais de Teste".
 
 ---
 
@@ -272,7 +299,28 @@ docker run -p 8083:8083 --env-file .env cp4-express-market-web
 
 ## Modelo de Dados
 
-Mesma entidade e tabela (`TDS_TB_mercado`) definidas na Parte I — consulte o [diagrama de classes da Parte I](https://github.com/3BugBuddies/cp4-express-market#modelo-de-dados) para o detalhamento de colunas e sequence.
+A aplicação usa a **mesma tabela** da Parte I, como o enunciado sugere ("utilizar o mesmo BD da Parte I"). Assim, um produto cadastrado pela API REST aparece nesta interface web, e vice-versa.
+
+### Diagrama de Classe
+
+![Diagrama de Classe](assets/diagrama.png)
+
+### Entidade `Produto`
+
+Tabela Oracle: `TDS_TB_mercado` | Sequence: `SQ_TDS_TB_mercado`
+
+| Campo | Coluna | Tipo | Validações |
+|-------|--------|------|-----------|
+| id | id_produto | Long (PK) | Gerado pela sequence |
+| nome | nm_nome_produto | String | Obrigatório, 3–50 caracteres |
+| tipo | tp_tipo | String | Obrigatório, 3–50 caracteres |
+| setor | st_setor | String | Obrigatório, 3–50 caracteres |
+| tamanho | tm_tamanho | String | Obrigatório, 2–50 caracteres |
+| preco | pr_preco | Double | Obrigatório, valor positivo |
+
+### Print do Banco de Dados
+
+![Colunas da tabela no SQL Developer](assets/banco.png)
 
 ---
 
@@ -302,23 +350,67 @@ Na edição, o formulário re-renderizado após um erro de validação mantém o
 
 ## Demonstração Visual
 
-### Tela de Login
+Prints na ordem em que o fluxo acontece no navegador. Os que mostram a barra de endereço foram tirados no deploy do Render; os demais, na aplicação rodando localmente sobre a mesma tabela.
 
-![Login Page](assets/login-page.png)
+### 1. Página inicial (pública)
 
-Formulário de autenticação customizado. Credenciais de teste: `Tranquilo` / `123`.
+![Página inicial](assets/home.png)
 
-### Listagem de Produtos
+Única tela acessível sem login, com o botão que leva ao formulário de autenticação.
 
-![Lista de Produtos](assets/lista-produtos.png)
+### 2. Rota privada sem sessão
 
-Painel administrativo mostrando todos os produtos cadastrados com opções de editar e excluir.
+Qualquer acesso direto a `/market` sem estar logado é interceptado pelo Spring Security e redirecionado para `/login`.
 
-### Formulário de Novo Produto
+![Tela de login](assets/login-page.png)
 
-![Novo Produto](assets/formulario-novo.png)
+Credenciais de teste: `Tranquilo` / `123`.
 
-Formulário para criar ou editar produtos, com validação client e server-side.
+### 3. Login com credenciais inválidas
+
+![Login com erro](assets/login-error.png)
+
+O Spring Security devolve para `/login?error` e o template exibe o alerta.
+
+### 4. Listagem de produtos (Read)
+
+![Lista de produtos](assets/lista-produtos.png)
+
+Painel autenticado com todos os registros de `TDS_TB_mercado`, botão "Novo produto" e ações de editar e excluir por linha. Os mesmos produtos aparecem na API da Parte I, porque a tabela é compartilhada.
+
+### 5. Novo produto (Create)
+
+![Formulário de novo produto](assets/formulario-novo.png)
+
+### 6. Validação do formulário
+
+![Erro de validação](assets/validacao-erro.png)
+
+Bean Validation no servidor (`@Valid` + `BindingResult`): nome com menos de 3 caracteres e preço negativo são rejeitados, e a mensagem de cada campo aparece abaixo dele, sem sair do formulário.
+
+### 7. Produto criado
+
+![Lista após criar](assets/lista-apos-criar.png)
+
+Após o `POST /market/novo`, o controller redireciona para `/market` e o novo registro aparece na tabela.
+
+### 8. Editar produto (Update)
+
+![Formulário de edição](assets/formulario-editar.png)
+
+Mesmo template do cadastro, pré-preenchido com os dados do banco; o envio vai para `POST /market/editar/{id}`.
+
+![Lista após editar](assets/lista-apos-editar.png)
+
+### 9. Excluir produto (Delete)
+
+O botão "Excluir" pede confirmação no navegador (`confirm()`). Confirmado, o `POST /market/excluir/{id}` remove o registro e volta para a lista.
+
+![Lista após excluir](assets/lista-apos-excluir.png)
+
+### 10. Logout
+
+O botão "Sair" encerra a sessão e volta para a página inicial pública. Uma nova tentativa de abrir `/market` cai de novo no login.
 
 ---
 
@@ -328,7 +420,7 @@ Formulário para criar ou editar produtos, com validação client e server-side.
 - **Spring Boot 4.1.1**
 - **Spring MVC**
 - **Spring Security** (form login + autorização por rota)
-- **Thymeleaf** + thymeleaf-extras-springsecurity6
+- **Thymeleaf**
 - **Spring Data JPA + Hibernate**
 - **Bean Validation (Hibernate Validator)**
 - **Lombok**
