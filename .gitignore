@@ -35,3 +35,6 @@ build/
 ### Credenciais locais (não versionar) ###
 application-local.properties
 .env
+
+### Claude Code (worktrees e docs locais) ###
+.claude/
