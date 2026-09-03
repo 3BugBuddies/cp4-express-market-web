@@ -1,5 +1,6 @@
 package com.br.fiap.cp4_express_market_web.controller;
 
+import com.br.fiap.cp4_express_market_web.assembler.ProdutoModelAssembler;
 import com.br.fiap.cp4_express_market_web.dto.ProdutoRequest;
 import com.br.fiap.cp4_express_market_web.service.ProdutoService;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class ProdutoViewController {
 
     private final ProdutoService produtoService;
+    private final ProdutoModelAssembler assembler;
 
     @GetMapping("/")
     public String home() {
@@ -30,7 +32,11 @@ public class ProdutoViewController {
 
     @GetMapping("/market")
     public String listar(Model model) {
-        model.addAttribute("produtos", produtoService.findAll());
+        // cada item vai para a view com seus links HATEOAS (editar, excluir, self)
+        model.addAttribute("produtos", produtoService.findAll()
+                .stream()
+                .map(assembler::toModel)
+                .toList());
         return "market";
     }
 
