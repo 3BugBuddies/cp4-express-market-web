@@ -10,14 +10,17 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(authorizeConfig -> {
-                    authorizeConfig.requestMatchers("/", "/publico", "/login").permitAll();
+                    authorizeConfig.requestMatchers("/", "/login", "/logout").permitAll();
                     authorizeConfig.requestMatchers("/css/**", "/js/**", "/images/**").permitAll();
-                    authorizeConfig.requestMatchers("/logout").permitAll();
+                    // /error é o destino interno de todo 404/500. Sem liberar, um erro em rota
+                    // pública (ex.: /css/arquivo-inexistente.css) viraria redirect para o login
+                    // em vez de renderizar a página de erro. Rotas desconhecidas continuam
+                    // privadas por causa do anyRequest().authenticated() abaixo.
+                    authorizeConfig.requestMatchers("/error").permitAll();
                     authorizeConfig.requestMatchers("/market/**").authenticated();
                     authorizeConfig.anyRequest().authenticated();
                 })
