@@ -414,6 +414,8 @@ O botão "Sair" encerra a sessão e volta para a página inicial pública. Uma n
 
 ---
 
+### Link Video https://youtu.be/yHTY1Hp-DQk
+
 ## Tecnologias Utilizadas
 
 - **Java 21**
