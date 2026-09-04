@@ -12,6 +12,7 @@ Este projeto reutiliza a mesma tabela Oracle (`TDS_TB_mercado`) construída na [
 |---------|-----|
 | Deploy (Render) | https://cp4-express-market-web.onrender.com/ |
 | Login | https://cp4-express-market-web.onrender.com/login |
+| Video | https://youtu.be/5lR1-srU-OI |
 
 > O plano gratuito do Render hiberna o serviço após ~15 min de inatividade. O primeiro acesso após esse período pode levar de 30 a 50 segundos para responder.
 
